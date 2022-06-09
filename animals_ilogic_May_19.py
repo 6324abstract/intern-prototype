@@ -10,7 +10,7 @@ def main():
     animal = c.create_cell("animal")
     water = c.create_cell("water")
     liquid = c.create_cell("liquid")
-    vertibrate = c.create_cell("vertibrate")
+    vertebrate = c.create_cell("vertebrate")
 
     animal_have_wings = c.create_cell("animal_have_wings")
     animal_flying = c.create_cell("animal_flying")
@@ -19,8 +19,8 @@ def main():
     c.create_cell("is", [robin, animal_have_wings])
     c.create_cell("is", [animal_have_wings, animal_flying])
     c.create_cell("is", [animal_flying, animal])
-    is_2 = c.create_cell("is", [bird, vertibrate])
-    c.create_cell("is", [vertibrate, animal])
+    is_2 = c.create_cell("is", [bird, vertebrate])
+    c.create_cell("is", [vertebrate, animal])
     c.create_cell("is", [water, liquid])
 
     c.build_coboundary()

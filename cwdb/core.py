@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Set, Optional, Dict
 from dataclasses import dataclass, field
-
+import numpy as np
 
 @dataclass
 class DSUData:
@@ -20,6 +20,8 @@ class Data:
     zero_cells: Set[Cell] = field(default_factory=set, repr=False)
     coboundary: List[Cell] = field(default=None, repr=False)
     deleted: bool = False
+    embedding: np.ndarray = field(default_factory=lambda: np.empty(shape=(0,))
+)
 
 
 @dataclass(frozen=True)
@@ -27,6 +29,10 @@ class Cell:
     dimension: int = -1
     data: Data = field(default=None, compare=False, hash=False)
     boundary: List[Cell] = field(default_factory=tuple)
+
+    @property
+    def embedding(self) -> np.ndarray:
+        return self.data.embedding
 
     @property
     def label(self) -> str:
@@ -38,7 +44,7 @@ class Cell:
     @property
     def coboundary(self) -> List[Cell]:
         if self.data.coboundary is None:
-            raise RuntimeError("Cobundary is not built")
+            raise RuntimeError("Co-boundary is not built")
         return self.data.coboundary
 
     @property
@@ -100,10 +106,10 @@ class Cell:
 
     def __repr__(self):
         if self.dimension == 0:
-            return f"Cell(\"{self.label}\")"
+            return f"Cell(\"{self.label}\", embedding={self.embedding})"
         else:
             return (
-                    f"Cell(\"{self.label}\""
+                    f"Cell(\"{self.label}\", embedding={self.embedding}"
                     f", dimension={self.dimension}"
                     ", boundary=[" + ", ".join(f"\"{b.label}\"" for b in self.boundary) + "]"
                                                                                           ")")
@@ -112,7 +118,7 @@ class Cell:
         if max_depth is not None and depth > max_depth:
             return ""
         if prefix is None:
-            result = self.label + "\n"
+            result = self.label + f" {self.embedding}\n"
             prefix = ""
         else:
             if is_last:
@@ -203,7 +209,11 @@ class CWComplex:
         self.clear_coboundary()
         for layer in self.layers[1:]:
             for cell in layer:
+                if cell.data.deleted:# skip deleted
+                    continue
                 for b in cell.boundary:
+                    if b.data.deleted: # skip deleted
+                        continue
                     if b.data.coboundary is None:
                         b.data.coboundary = []
                     b.coboundary.append(cell)

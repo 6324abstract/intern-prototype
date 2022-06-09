@@ -1,5 +1,6 @@
 from .core import CWComplex, Cell
 from typing import List
+import numpy as np
 
 
 def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
@@ -74,3 +75,39 @@ def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
     # deletion
     for x in deletion_list:
         x.data.deleted = True
+
+
+def revision_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
+    assert e1.label == e2.label
+    assert e1.boundary == e2.boundary
+    f1, c1 = e1.embedding
+    f2, c2 = e2.embedding
+    f3 = (f1 * c1 * (1 - c2) + f2 * c2 * (1 - c1)) / (c1 * (1 - c2) + c2 * (1 - c1))
+    c3 = (c1 * (1 - c2) + c2 * (1 - c1)) / ((c1 * (1 - c2) + c2 * (1 - c1)) + (1 - c1) * (1 - c2))
+
+    result = c.create_cell(e1.label, e1.boundary)
+    result.data.embedding = np.array([f3, c3])
+    e1.data.deleted = True
+    e2.data.deleted = True
+    return result
+
+
+def choice_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
+    assert e1.label == e2.label
+    assert e1.boundary == e2.boundary
+    f1, c1 = e1.embedding
+    f2, c2 = e2.embedding
+    if c1 > c2:
+        e1, e2 = e2, e1
+    e1.data.deleted = True
+    return e2
+
+
+def random_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
+    assert e1.label == e2.label
+    assert e1.boundary == e2.boundary
+    if np.random.random() > 0.5:
+        rule = choice_rule
+    else:
+        rule = revision_rule
+    return rule(c, e1, e2)

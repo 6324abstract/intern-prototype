@@ -62,4 +62,4 @@ def get_truth_value(s: Cell, p: Cell, k: int = 1):
     W = po_half + po_another_half + negative_another_half + negative_half
     W_plus = po_half + po_another_half
 
-    return W_plus, W, W_plus / W, W / (W + k)
+    return W_plus / W, W / (W + k)
