@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Set, Optional, Dict
+from typing import List, Set, Optional, Tuple, Callable
 from dataclasses import dataclass, field
 import numpy as np
 
@@ -20,15 +20,57 @@ class Data:
     zero_cells: Set[Cell] = field(default_factory=set, repr=False)
     coboundary: List[Cell] = field(default=None, repr=False)
     deleted: bool = False
-    embedding: np.ndarray = field(default_factory=lambda: np.empty(shape=(0,))
-)
+    embedding: np.ndarray = field(default_factory=lambda: np.empty(shape=(0,)))
+    task_implementation: Optional[Callable] = None
+    atom_of: Set[Cell] = field(default_factory=set, repr=False)
+    atoms: Set[Cell] = field(default_factory=set, repr=False)
 
 
 @dataclass(frozen=True)
 class Cell:
     dimension: int = -1
     data: Data = field(default=None, compare=False, hash=False)
-    boundary: List[Cell] = field(default_factory=tuple)
+    boundary: Tuple[Cell] = field(default_factory=tuple)
+
+    @property
+    def atoms(self) -> Set[Cell]:
+        assert self.dimension >= 1
+        return self.data.atoms
+
+    @property
+    def atom_of(self) -> Set[Cell]:
+        assert self.dimension == 0
+        return self.data.atom_of
+
+    @property
+    def atom(self) -> Optional[Cell]:
+        assert self.dimension >= 1
+        n = len(self.data.atoms)
+        if n > 1:
+            raise RuntimeError(f"Cell {self} has {n} atoms")
+        for atom in self.data.atoms:
+            return atom
+
+    @property
+    def self_or_atom(self) -> Optional[Cell]:
+        if self.dimension == 0:
+            return self
+        return self.atom
+
+    @property
+    def self_or_the_only_atom_for(self) -> Optional[Cell]:
+        if self.dimension == 0:
+            return self.the_only_atom_of
+        return self
+
+    @property
+    def the_only_atom_of(self) -> Optional[Cell]:
+        assert self.dimension == 0
+        n = len(self.data.atom_of)
+        if n > 1:
+            raise RuntimeError(f"Cell {self} has {n} atomisations")
+        for atomisation in self.data.atom_of:
+            return atomisation
 
     @property
     def embedding(self) -> np.ndarray:
@@ -62,7 +104,7 @@ class Cell:
         cell = cls(
             data=Data(label=label),
             dimension=max((x.dimension for x in boundary), default=-1) + 1,
-            boundary=boundary
+            boundary=tuple(boundary)
         )
         cell.data.zero_cells = {
             c
@@ -156,34 +198,45 @@ def merge(a: Cell, b: Cell) -> None:
     parent_b.data.dsu.size += parent_a.data.dsu.size
 
 
-@dataclass(frozen=True)
-class Atomization:
+class Atomisation:
     closure_of: Cell
     atom: Cell
+
+    def __init__(self, atom: Cell, closure_of: Cell):
+        self.atom = atom
+        self.closure_of = closure_of
+        atom.data.atom_of.add(closure_of)
+        closure_of.data.atoms.add(atom)
+
+    def destroy(self):
+        self.atom.data.atom_of.remove(self.closure_of)
+        self.closure_of.data.atoms.remove(self.atom)
 
 
 @dataclass
 class CWComplex:
     layers: List[List[Cell]] = field(default_factory=list)
-    atomizations: Dict[int, Atomization] = field(default_factory=dict)
+    atomisations: List[Atomisation] = field(default_factory=list)
 
-    def link(self, a: Cell, b: Cell, label="") -> Optional[Cell]:
+    def link(self, a: Cell, b: Cell, label="", oriented=False) -> Optional[Cell]:
         assert a.dimension == 0
         assert b.dimension == 0
+
+        if len(self.layers) < 2:
+            self.layers.append([])
+
         for c in self.layers[1]:
             if (a == c.boundary[0] and c == c.boundary[1]
-                    or a == c.boundary[1] and c == c.boundary[0]):
+                    or (not oriented and a == c.boundary[1] and c == c.boundary[0])):
                 return c
         return self.create_cell(label, [a, b])
 
-    def atomize(self, what: Cell, to: Cell) -> Atomization:
+    def atomize(self, what: Cell, to: Cell) -> Atomisation:
         assert what.dimension >= 1
         assert to.dimension == 0
-        if id(what) not in self.atomizations:
-            self.atomizations[id(what)] = Atomization(what, atom=to)
-        result = self.atomizations[id(what)]
-        if result.atom is not to:
-            raise RuntimeError(f"{repr(result.closure_of)} is already atomized to {repr(result.atom)} != {repr(to)}")
+        assert to not in what.atoms
+        result = Atomisation(closure_of=what, atom=to)
+        self.atomisations.append(result)
         return result
 
     def create_cell(self, label: str, boundary=None) -> Cell:

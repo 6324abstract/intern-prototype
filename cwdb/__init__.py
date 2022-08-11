@@ -1,5 +1,5 @@
 from .core import (
-    Atomization,
+    Atomisation,
     Cell,
     CWComplex,
 )
