@@ -145,6 +145,12 @@ class Cell:
 
         return cell
 
+    def __eq__(self, other):
+        return self is other
+
+    def __hash__(self):
+        return hash(id(self))
+
     def __repr__(self):
         if self.dimension == 0:
             return f'Cell("{self.label}", embedding={self.embedding})'
