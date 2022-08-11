@@ -1,11 +1,15 @@
 import re
+from collections import defaultdict
+from typing import Dict
 
 from .core import Cell
 
+CellID = int
+
 
 def to_lang_representation(cplx) -> str:
-    cell2name = {}
-    name2count = {}
+    cell2name: Dict[CellID, str] = {}
+    name2count: Dict[str, int] = defaultdict(int)
 
     def escape_label(label):
         return re.sub(r"([\\\'])", r"\\\1", label)
@@ -22,8 +26,6 @@ def to_lang_representation(cplx) -> str:
         if name in name2count:
             name2count[name] += 1
             name += "_" + str(name2count[name])
-        else:
-            name2count[name] = 0
         cell2name[id(c)] = name
         return name
 

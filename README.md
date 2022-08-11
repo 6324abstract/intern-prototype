@@ -17,7 +17,7 @@ pre-commit install
 # Pre-commit hooks
 pre-commit run --all-files
 # Mypy types check
-mypy cwdb tts
+mypy --show-error-codes cwdb tts
 ```
 
 ### Run tests

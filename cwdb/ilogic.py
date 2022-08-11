@@ -16,12 +16,12 @@ def get_extension_dfs(cell: Cell, visited: Set[Cell]) -> List[Cell]:
 
 def get_extension(cell: Cell) -> List[Cell]:
     assert cell.dimension == 0
-    visited = set()
+    visited: Set[Cell] = set()
     return get_extension_dfs(cell, visited)
 
 
 def get_intention_dfs(cell: Cell, visited: Set[Cell]) -> List[Cell]:
-    result = [cell]
+    result: List[Cell] = [cell]
     visited.add(cell)
     for b in cell.coboundary:
         if b.boundary[0] is cell:
@@ -33,7 +33,7 @@ def get_intention_dfs(cell: Cell, visited: Set[Cell]) -> List[Cell]:
 
 def get_intention(cell: Cell) -> List[Cell]:
     assert cell.dimension == 0
-    visited = set()
+    visited: Set[Cell] = set()
     return get_intention_dfs(cell, visited)
 
 

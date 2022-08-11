@@ -16,7 +16,7 @@ class Star:
         self.cell: Cell = self.cw.create_cell(name)
 
     def create(self, cls: Type_[T]) -> T:
-        return cls(self)
+        return cls(self)  # type: ignore[call-arg]
 
 
 class Instance(Generic[T]):
@@ -39,7 +39,10 @@ class IntType(Type):
     def __init__(self, star: Star):
         super().__init__(star, "Int")
 
-    def create(self: IntType, value: int) -> Instance[IntType]:
+    def create(  # type: ignore[override]
+        self: IntType, value: int
+    ) -> Instance[IntType]:
+
         res = self.cw.create_cell(f"{value}")
         self.cw.link(res, self.cell, "io", oriented=True)
         return Instance[IntType](res)
@@ -49,7 +52,9 @@ class FloatType(Type):
     def __init__(self, star: Star):
         super().__init__(star, "Float")
 
-    def create(self: FloatType, value: float) -> Instance[FloatType]:
+    def create(  # type: ignore[override]
+        self: FloatType, value: float
+    ) -> Instance[FloatType]:
         res = self.cw.create_cell(f"{value}")
         self.cw.link(res, self.cell)
         return Instance[FloatType](res)
@@ -59,7 +64,9 @@ class StringType(Type):
     def __init__(self, star: Star):
         super().__init__(star, "String")
 
-    def create(self: StringType, value: str) -> Instance[StringType]:
+    def create(  # type: ignore[override]
+        self: StringType, value: str
+    ) -> Instance[StringType]:
         res = self.cw.create_cell(value)
         self.cw.link(res, self.cell)
         return Instance[StringType](res)
@@ -119,7 +126,7 @@ class TaskType(Type):
         super().__init__(star, "Task")
         self.SignatureType = SignatureType(self)
 
-    def create(
+    def create(  # type: ignore[override]
         self, name: str, args: Dict[str, Type], code: Callable, return_type: Type = None
     ) -> TaskInstance:
         task = self.cw.create_cell(name + "_task")

@@ -55,8 +55,7 @@ def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
                 if b.label not in ["bind", "nobind"] and b is not p
             ]
             assert len(target) == 1
-            target = target[0]
-            target_to_destination[id(target)] = destination_cell
+            target_to_destination[id(target[0])] = destination_cell
         else:
             deletion_list.append(destination_cell)
 

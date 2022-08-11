@@ -10,8 +10,8 @@ import numpy as np
 class DSUData:
     """Disjoint set union"""
 
-    size: Optional[int] = None
-    parent: Optional[Cell] = None
+    size: int
+    parent: Cell
 
 
 @dataclass
@@ -19,9 +19,9 @@ class Data:
     """Flexible mutable smth"""
 
     label: str
-    dsu: DSUData = field(default=DSUData, repr=False)
+    dsu: Optional[DSUData] = field(default=None, repr=False)
     zero_cells: Set[Cell] = field(default_factory=set, repr=False)
-    coboundary: List[Cell] = field(default=None, repr=False)
+    coboundary: Optional[List[Cell]] = field(default=None, repr=False)
     deleted: bool = False
     embedding: np.ndarray = field(default_factory=lambda: np.empty(shape=(0,)))
     task_implementation: Optional[Callable] = None
@@ -31,9 +31,9 @@ class Data:
 
 @dataclass(frozen=True)
 class Cell:
-    dimension: int = -1
-    data: Data = field(default=None, compare=False, hash=False)
-    boundary: Tuple[Cell] = field(default_factory=tuple)
+    data: Data = field(compare=False)
+    dimension: int = field(default=-1)
+    boundary: Tuple[Cell, ...] = field(default_factory=tuple)
 
     @property
     def atoms(self) -> Set[Cell]:
@@ -53,6 +53,7 @@ class Cell:
             raise RuntimeError(f"Cell {self} has {n} atoms")
         for atom in self.data.atoms:
             return atom
+        return None
 
     @property
     def self_or_atom(self) -> Optional[Cell]:
@@ -74,6 +75,7 @@ class Cell:
             raise RuntimeError(f"Cell {self} has {n} atomisations")
         for atomisation in self.data.atom_of:
             return atomisation
+        return None
 
     @property
     def embedding(self) -> np.ndarray:
@@ -118,13 +120,14 @@ class Cell:
 
         # check that closure is connected
         for b in cell.zero_cells:
-            b.data.dsu.parent = b
-            b.data.dsu.size = 0
+            b.data.dsu = DSUData(parent=b, size=0)
+            assert b.data.dsu is not None
 
         for b in boundary:
-            b.data.dsu.parent = b
-            b.data.dsu.size = 0
+            b.data.dsu = DSUData(parent=b, size=0)
             for z in b.zero_cells:
+                assert z in cell.zero_cells
+                assert z.data.dsu is not None
                 merge(b, z)
 
         p1 = find(boundary[0])
@@ -136,12 +139,10 @@ class Cell:
             p1 = p
 
         for b in boundary:
-            b.data.dsu.parent = None
-            b.data.dsu.size = -1
+            b.data.dsu = None
 
         for b in cell.data.zero_cells:
-            b.data.dsu.parent = None
-            b.data.dsu.size = -1
+            b.data.dsu = None
 
         return cell
 
@@ -190,7 +191,9 @@ class Cell:
 
 
 def find(cell: Cell) -> Cell:
+    assert cell.data.dsu is not None
     while cell is not cell.data.dsu.parent:
+        assert cell.data.dsu.parent.data.dsu is not None
         cell.data.dsu.parent = cell.data.dsu.parent.data.dsu.parent
         cell = cell.data.dsu.parent
     return cell
@@ -199,9 +202,13 @@ def find(cell: Cell) -> Cell:
 def merge(a: Cell, b: Cell) -> None:
     parent_a = find(a)
     parent_b = find(b)
+    assert parent_a.data.dsu is not None
+    assert parent_b.data.dsu is not None
     if parent_a.data.dsu.size > parent_b.data.dsu.size:
         parent_a, parent_b = parent_b, parent_a
 
+    assert parent_a.data.dsu is not None
+    assert parent_b.data.dsu is not None
     parent_a.data.dsu.parent = parent_b
     parent_b.data.dsu.size += parent_a.data.dsu.size
 
@@ -268,6 +275,7 @@ class CWComplex:
             for cell in layer:
                 if cell.label == key:
                     return cell
+        return None
 
     def build_coboundary(self):
         self.clear_coboundary()
