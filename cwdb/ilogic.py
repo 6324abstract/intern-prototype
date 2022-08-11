@@ -1,5 +1,6 @@
+from typing import List, Set
+
 from .core import Cell
-from typing import Set, List
 
 
 def get_extension_dfs(cell: Cell, visited: Set[Cell]) -> List[Cell]:
@@ -44,17 +45,9 @@ def get_truth_value(s: Cell, p: Cell, k: int = 1):
     pi = get_intention(p)
 
     # positive evidence = W+ ???? ?
-    po_half = len({
-        id(x)
-        for x in se
-        if x in pe
-    })
+    po_half = len({id(x) for x in se if x in pe})
 
-    po_another_half = len({
-        id(x)
-        for x in pi
-        if x in si
-    })
+    po_another_half = len({id(x) for x in pi if x in si})
 
     negative_half = len(se) - po_half
     negative_another_half = len(pi) - po_another_half

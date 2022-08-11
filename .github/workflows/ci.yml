@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Run black
+        run: black --diff .
+        if: ${{ failure() ||  success() }}
+      - name: Run isort
+        run: isort --check --profile=black --diff .
+        if: ${{ failure() ||  success() }}
+
+  linters:
+    name: Linters
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Run flake8
+        run: |
+          flake8 \
+            --max-line-length=88 \
+            --extend-ignore=E203 \
+            --extend-exclude=venv/,.pytest_cache/,.ipynb_checkpoints/,.notebooks,tests/,examples/
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Run pytest
+        run: pytest
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Run mypy
+        run: mypy cwdb tts

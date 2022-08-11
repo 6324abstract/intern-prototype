@@ -1,14 +1,17 @@
 from __future__ import annotations
-from typing import List, Set, Optional, Tuple, Callable
+
 from dataclasses import dataclass, field
+from typing import Callable, List, Optional, Set, Tuple
+
 import numpy as np
+
 
 @dataclass
 class DSUData:
     """Disjoint set union"""
+
     size: Optional[int] = None
     parent: Optional[Cell] = None
-
 
 
 @dataclass
@@ -80,7 +83,7 @@ class Cell:
     def label(self) -> str:
         result = self.data.label
         if self.data.deleted:
-            result = f"[DELETED] " + result
+            result = "[DELETED] " + result
         return result
 
     @property
@@ -104,13 +107,9 @@ class Cell:
         cell = cls(
             data=Data(label=label),
             dimension=max((x.dimension for x in boundary), default=-1) + 1,
-            boundary=tuple(boundary)
+            boundary=tuple(boundary),
         )
-        cell.data.zero_cells = {
-            c
-            for x in boundary
-            for c in x.zero_cells
-        }
+        cell.data.zero_cells = {c for x in boundary for c in x.zero_cells}
 
         if cell.dimension == 1:
             if len(boundary) > 2:
@@ -148,13 +147,14 @@ class Cell:
 
     def __repr__(self):
         if self.dimension == 0:
-            return f"Cell(\"{self.label}\", embedding={self.embedding})"
+            return f'Cell("{self.label}", embedding={self.embedding})'
         else:
             return (
-                    f"Cell(\"{self.label}\", embedding={self.embedding}"
-                    f", dimension={self.dimension}"
-                    ", boundary=[" + ", ".join(f"\"{b.label}\"" for b in self.boundary) + "]"
-                                                                                          ")")
+                f'Cell("{self.label}", embedding={self.embedding}'
+                f", dimension={self.dimension}"
+                ", boundary=[" + ", ".join(f'"{b.label}"' for b in self.boundary) + "]"
+                ")"
+            )
 
     def to_tree(self, prefix=None, is_last=False, max_depth=None, depth=0):
         if max_depth is not None and depth > max_depth:
@@ -174,7 +174,9 @@ class Cell:
                 prefix += "│   "
         for i, b in enumerate(self.boundary):
             is_last = i == len(self.boundary) - 1
-            result += b.to_tree(prefix, max_depth=max_depth, depth=depth + 1, is_last=is_last)
+            result += b.to_tree(
+                prefix, max_depth=max_depth, depth=depth + 1, is_last=is_last
+            )
         return result
 
     def __str__(self):
@@ -226,8 +228,11 @@ class CWComplex:
             self.layers.append([])
 
         for c in self.layers[1]:
-            if (a == c.boundary[0] and c == c.boundary[1]
-                    or (not oriented and a == c.boundary[1] and c == c.boundary[0])):
+            if (
+                a == c.boundary[0]
+                and c == c.boundary[1]
+                or (not oriented and a == c.boundary[1] and c == c.boundary[0])
+            ):
                 return c
         return self.create_cell(label, [a, b])
 
@@ -262,10 +267,10 @@ class CWComplex:
         self.clear_coboundary()
         for layer in self.layers[1:]:
             for cell in layer:
-                if cell.data.deleted:# skip deleted
+                if cell.data.deleted:  # skip deleted
                     continue
                 for b in cell.boundary:
-                    if b.data.deleted: # skip deleted
+                    if b.data.deleted:  # skip deleted
                         continue
                     if b.data.coboundary is None:
                         b.data.coboundary = []

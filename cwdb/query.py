@@ -1,4 +1,5 @@
 import numpy as np
+
 from .core import CWComplex
 
 
@@ -23,7 +24,9 @@ def query_boundary(label: str, boundary):
     return result.embedding
 
 
-def query_boundary_and_resolve_ambiguity(c: CWComplex, label: str, boundary, ambiguity_resolution_rule):
+def query_boundary_and_resolve_ambiguity(
+    c: CWComplex, label: str, boundary, ambiguity_resolution_rule
+):
     while True:
         try:
             return query_boundary(label, boundary)

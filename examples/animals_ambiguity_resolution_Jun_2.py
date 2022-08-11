@@ -1,8 +1,9 @@
+import numpy as np
+
 from cwdb import *
 from cwdb.ilogic import *
-import numpy as np
-from cwdb.rules import *
 from cwdb.query import query_boundary, query_boundary_and_resolve_ambiguity
+from cwdb.rules import *
 
 
 def main():
@@ -46,7 +47,11 @@ def main():
 
     print(to_lang_representation(c))
 
-    print(query_boundary_and_resolve_ambiguity(c, "is", [bird, vertebrate], ambiguity_resolution_rule=random_rule))
+    print(
+        query_boundary_and_resolve_ambiguity(
+            c, "is", [bird, vertebrate], ambiguity_resolution_rule=random_rule
+        )
+    )
 
     print(to_lang_representation(c))
 
@@ -61,5 +66,5 @@ def main():
         return e1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

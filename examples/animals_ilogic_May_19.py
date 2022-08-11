@@ -33,8 +33,11 @@ def main():
 
     print(get_truth_value(water, water, 10))
 
-    print(get_truth_value(bird, animal_have_wings), get_truth_value(animal_have_wings, bird))
+    print(
+        get_truth_value(bird, animal_have_wings),
+        get_truth_value(animal_have_wings, bird),
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

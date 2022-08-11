@@ -1,6 +1,7 @@
-from tts import TaskTypeSystem
-from cwdb import CWComplex, Cell
 import pytest
+
+from cwdb import Cell, CWComplex
+from tts import TaskTypeSystem
 
 
 class PyImplementation:
@@ -53,7 +54,9 @@ def test_hello_world_n_times_wrong_arg_type():
     tts = TaskTypeSystem(cw)
 
     printer = PyImplementation()
-    hw = tts.Task.create(name="hello_world_n_times", args={"n": tts.Int.cell}, code=printer)
+    hw = tts.Task.create(
+        name="hello_world_n_times", args={"n": tts.Int.cell}, code=printer
+    )
     arg = tts.String.create("Alice")
     with pytest.raises(RuntimeError) as exc:
         hw.eval(n=arg)
