@@ -241,10 +241,10 @@ class CWComplex:
             self.layers.append([])
 
         for c in self.layers[1]:
-            if (
+            if c.label == label and (
                 a == c.boundary[0]
-                and c == c.boundary[1]
-                or (not oriented and a == c.boundary[1] and c == c.boundary[0])
+                and b == c.boundary[1]
+                or (not oriented and a == c.boundary[1] and b == c.boundary[0])
             ):
                 return c
         return self.create_cell(label, [a, b])
@@ -279,6 +279,8 @@ class CWComplex:
 
     def build_coboundary(self):
         self.clear_coboundary()
+        for cell in self.layers[0]:
+            cell.data.coboundary = []
         for layer in self.layers[1:]:
             for cell in layer:
                 if cell.data.deleted:  # skip deleted
