@@ -29,7 +29,7 @@ class Data:
     atoms: Set[Cell] = field(default_factory=set, repr=False)
 
 
-@dataclass(frozen=True)
+@dataclass
 class Cell:
     data: Data = field(compare=False)
     dimension: int = field(default=-1)
@@ -81,12 +81,20 @@ class Cell:
     def embedding(self) -> np.ndarray:
         return self.data.embedding
 
+    @embedding.setter
+    def embedding(self, value: np.ndarray):
+        self.data.embedding = value
+
     @property
     def label(self) -> str:
         result = self.data.label
         if self.data.deleted:
             result = "[DELETED] " + result
         return result
+
+    @label.setter
+    def label(self, value: str):
+        self.data.label = value
 
     @property
     def coboundary(self) -> List[Cell]:
@@ -106,6 +114,7 @@ class Cell:
 
     @classmethod
     def from_boundary(cls, label: str, boundary: List[Cell]) -> Cell:
+        assert len(boundary) != 0
         cell = cls(
             data=Data(label=label),
             dimension=max((x.dimension for x in boundary), default=-1) + 1,
