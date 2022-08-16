@@ -1,5 +1,5 @@
 from cwdb import Cell, CWComplex
-from tts import TaskTypeSystem
+from cwdb.tts import TaskTypeSystem
 
 
 def main():

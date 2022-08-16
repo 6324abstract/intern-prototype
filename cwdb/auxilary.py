@@ -47,6 +47,8 @@ def to_lang_representation(cplx) -> str:
             result += "]: '" + escape_label(cell.label) + "'\n"
 
     for a in cplx.atomisations:
-        result += f"{get_name(a.closure_of)} ~> {get_name(a.atom)}\n"
+        result += (
+            f"{get_name(a.closure_of)} ~> {[get_name(atom) for atom in a.atoms]}\n"
+        )
 
     return result

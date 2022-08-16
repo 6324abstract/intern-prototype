@@ -1,75 +1,10 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import Any, Callable, Dict, Generic
-from typing import Type as Type_
-from typing import TypeVar
+from typing import Any, Callable, Dict
 
-from cwdb import Cell, CWComplex
+from cwdb import Cell
 
-T = TypeVar("T")
-
-
-class Star:
-    def __init__(self, name: str, cw: CWComplex):
-        self.cw: CWComplex = cw
-        self.cell: Cell = self.cw.create_cell(name)
-
-    def create(self, cls: Type_[T]) -> T:
-        return cls(self)  # type: ignore[call-arg]
-
-
-class Instance(Generic[T]):
-    def __init__(self, cell: Cell):
-        self.cell: Cell = cell
-
-
-class Type:
-    def __init__(self, star: Star, name: str):
-        self.cw: CWComplex = star.cw
-        self.cell = self.cw.create_cell(name)
-        self.cw.link(self.cell, star.cell, "io", oriented=True)
-
-    @abstractmethod
-    def create(self: T, *args, **kwargs) -> Instance[T]:
-        pass
-
-
-class IntType(Type):
-    def __init__(self, star: Star):
-        super().__init__(star, "Int")
-
-    def create(  # type: ignore[override]
-        self: IntType, value: int
-    ) -> Instance[IntType]:
-
-        res = self.cw.create_cell(f"{value}")
-        self.cw.link(res, self.cell, "io", oriented=True)
-        return Instance[IntType](res)
-
-
-class FloatType(Type):
-    def __init__(self, star: Star):
-        super().__init__(star, "Float")
-
-    def create(  # type: ignore[override]
-        self: FloatType, value: float
-    ) -> Instance[FloatType]:
-        res = self.cw.create_cell(f"{value}")
-        self.cw.link(res, self.cell)
-        return Instance[FloatType](res)
-
-
-class StringType(Type):
-    def __init__(self, star: Star):
-        super().__init__(star, "String")
-
-    def create(  # type: ignore[override]
-        self: StringType, value: str
-    ) -> Instance[StringType]:
-        res = self.cw.create_cell(value)
-        self.cw.link(res, self.cell)
-        return Instance[StringType](res)
+from .core import Instance, Star, Type
 
 
 class SignatureType:
@@ -212,26 +147,3 @@ class TaskInstance(Instance[TaskType]):
         else:
             args_dict: Dict[str, Cell] = self._bind(**kwargs).to_args_dict()
             return self.cell.data.task_implementation(**args_dict)
-
-
-class TaskTypeSystem:
-    def __init__(self, cw: CWComplex):
-        self.cw = cw
-        self.Star = Star("*", cw)
-        self.Int: IntType = self.Star.create(IntType)
-        self.Float: FloatType = self.Star.create(FloatType)
-        self.String: StringType = self.Star.create(StringType)
-        self.Task: TaskType = self.Star.create(TaskType)
-
-    def is_instance_of(self, instance: Cell, asserted_type: Type) -> bool:
-        if instance.data.coboundary is None:
-            self.cw.build_coboundary()
-
-        for link in instance.coboundary:
-            if (
-                link.dimension == 1
-                and link.label == "io"
-                and link.boundary[1] is asserted_type.cell
-            ):
-                return True
-        return False

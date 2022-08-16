@@ -1,7 +1,10 @@
+from typing import List
+
 import pytest
 
 from cwdb import Cell, CWComplex
-from tts import TaskTypeSystem
+from cwdb import tts as t
+from cwdb.tts import TaskTypeSystem
 
 
 class PyImplementation:
@@ -33,7 +36,7 @@ def test_hello_world_wrong_number_of_arguments():
     hw = tts.Task.create(name="hello_world_n_times", args={}, code=printer)
     arg = tts.Int.create(7)
 
-    with pytest.raises(RuntimeError) as exc:
+    with pytest.raises(RuntimeError) as _:
         hw.eval(n=arg)
 
 
@@ -58,7 +61,7 @@ def test_hello_world_n_times_wrong_arg_type():
         name="hello_world_n_times", args={"n": tts.Int.cell}, code=printer
     )
     arg = tts.String.create("Alice")
-    with pytest.raises(RuntimeError) as exc:
+    with pytest.raises(RuntimeError) as _:
         hw.eval(n=arg)
 
 
@@ -86,3 +89,39 @@ def test_task_return_type():
 
     a_human = hw.eval()
     assert a_human is alice
+
+
+def test_create_int_set():
+    cw = CWComplex()
+    tts = TaskTypeSystem(cw)
+
+    IntSet: t.SetType[t.IntType] = tts.Set.create_type(tts.Int)
+    ints: List[t.Instance[t.IntType]] = [tts.Int.create(i) for i in (1, 2, 3)]
+    int_set_1: t.SetInstance[t.IntType] = IntSet.create(*ints)
+    int_4 = tts.Int.create(4)
+    assert len(int_set_1) == 3
+    assert ints[0] in int_set_1
+    assert ints[1] in int_set_1
+    assert ints[2] in int_set_1
+    assert int_4 not in int_set_1
+
+    for idx, elem in enumerate(int_set_1):
+        assert elem is ints[idx].cell
+
+
+def test_create_int_list():
+    cw = CWComplex()
+    tts = TaskTypeSystem(cw)
+
+    IntList: t.ListType[t.IntType] = tts.List.create_type(tts.Int)
+    ints: List[t.Instance[t.IntType]] = [tts.Int.create(i) for i in (1, 2, 3)]
+    int_list_1: t.SetInstance[t.IntType] = IntList.create(*ints)
+    int_4 = tts.Int.create(4)
+    assert len(int_list_1) == 3
+    assert ints[0] in int_list_1
+    assert ints[1] in int_list_1
+    assert ints[2] in int_list_1
+    assert int_4 not in int_list_1
+
+    for idx in range(len(int_list_1)):
+        assert int_list_1[idx] is ints[idx].cell

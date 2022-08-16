@@ -46,36 +46,24 @@ class Cell:
         return self.data.atom_of
 
     @property
-    def atom(self) -> Optional[Cell]:
+    def atom(self) -> Cell:
         assert self.dimension >= 1
         n = len(self.data.atoms)
         if n > 1:
             raise RuntimeError(f"Cell {self} has {n} atoms")
         for atom in self.data.atoms:
             return atom
-        return None
+        raise RuntimeError(f"Cell {self} has no atoms")
 
     @property
-    def self_or_atom(self) -> Optional[Cell]:
-        if self.dimension == 0:
-            return self
-        return self.atom
-
-    @property
-    def self_or_the_only_atom_for(self) -> Optional[Cell]:
-        if self.dimension == 0:
-            return self.the_only_atom_of
-        return self
-
-    @property
-    def the_only_atom_of(self) -> Optional[Cell]:
+    def the_only_atom_of(self) -> Cell:
         assert self.dimension == 0
         n = len(self.data.atom_of)
         if n > 1:
             raise RuntimeError(f"Cell {self} has {n} atomisations")
         for atomisation in self.data.atom_of:
             return atomisation
-        return None
+        raise RuntimeError(f"Cell {self} has no atomisations")
 
     @property
     def embedding(self) -> np.ndarray:
