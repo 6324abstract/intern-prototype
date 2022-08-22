@@ -1,3 +1,7 @@
+"""
+Visualizaing of this module:
+https://miro.com/app/board/uXjVPes5Bj4=/?moveToWidget=3458764531408495124&cot=14
+"""
 from __future__ import annotations
 
 from .core import Instance, Star, Type

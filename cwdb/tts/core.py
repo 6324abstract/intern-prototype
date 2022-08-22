@@ -12,6 +12,8 @@ HT = TypeVar("HT", bound="TypeConstructor")
 
 
 class Star:
+    """Creates types"""
+
     def __init__(self, cw: CWComplex, name: str = "*"):
         self.cw: CWComplex = cw
         self.cell: Cell = self.cw.create_cell(name)
@@ -21,6 +23,8 @@ class Star:
 
 
 class StarToStar:
+    """Creates type constructors"""
+
     def __init__(self, star: Star, name: str = "* -> *"):
         self.name = name
         self.star: Star = star
@@ -32,11 +36,15 @@ class StarToStar:
 
 
 class Instance(Generic[T]):
+    """Represents Instance of specific type"""
+
     def __init__(self, cell: Cell):
         self.cell: Cell = cell
 
 
 class Type:
+    """Base class for all types"""
+
     def __init__(self, star: Star, name: str):
         self.star = star
         self.cw: CWComplex = self.star.cw
@@ -50,6 +58,7 @@ class Type:
 
 class TypeConstructor:
     """
+    Base class for all type constructors
     Only for * -> *
     NOT for * -> * -> *  or  * -> (* -> *), etc.
     """

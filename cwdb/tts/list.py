@@ -1,3 +1,7 @@
+"""
+Visualizing of this module:
+https://miro.com/app/board/uXjVPes5Bj4=/?moveToWidget=3458764531336116209&cot=14
+"""
 from __future__ import annotations
 
 from typing import Generic, Iterator, List
@@ -7,7 +11,23 @@ from cwdb import Cell
 from .core import Instance, Star, StarToStar, T, Type, TypeConstructor
 
 
+class ListTypeConstructor(TypeConstructor):
+    """Represents `List[_]` type constructor"""
+
+    def __init__(self, star_to_star: StarToStar):
+        super(ListTypeConstructor, self).__init__(
+            star_to_star=star_to_star, name="List[...]"
+        )
+
+    def create_type(self, type_of_elems: T) -> ListType[T]:
+        type_name = f"List[{type_of_elems.name}]"
+        return ListType(self.star, type_name, type_of_elems)
+
+
 class ListType(Generic[T], Type):
+    """Represents `List[T]` type with specific type of elements `T`
+    e.g. List[IntType]"""
+
     def __init__(self, star: Star, name: str, type_: Type):
         super(ListType, self).__init__(star=star, name=name)
         self.element_type = type_
@@ -29,6 +49,9 @@ class ListType(Generic[T], Type):
 
 
 class ListInstance(Generic[T], Instance[ListType[T]]):
+    """Represents instances of `List[T]` type
+    e.g. instance of List[IntType] = [1,22,-45]"""
+
     def __init__(self, cell: Cell):
         super(ListInstance, self).__init__(cell=cell)
 
@@ -48,14 +71,3 @@ class ListInstance(Generic[T], Instance[ListType[T]]):
 
     def __len__(self) -> int:
         return len(self.list_representation)
-
-
-class ListTypeConstructor(TypeConstructor):
-    def __init__(self, star_to_star: StarToStar):
-        super(ListTypeConstructor, self).__init__(
-            star_to_star=star_to_star, name="List[...]"
-        )
-
-    def create_type(self, type_of_elems: T) -> ListType[T]:
-        type_name = f"List[{type_of_elems.name}]"
-        return ListType(self.star, type_name, type_of_elems)

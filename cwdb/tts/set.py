@@ -1,3 +1,7 @@
+"""
+Visualizing of this module:
+https://miro.com/app/board/uXjVPes5Bj4=/?moveToWidget=3458764531336116322&cot=14
+"""
 from __future__ import annotations
 
 from typing import Generic, Iterator
@@ -7,7 +11,22 @@ from cwdb import Cell
 from .core import Instance, Star, StarToStar, T, Type, TypeConstructor
 
 
+class SetTypeConstructor(TypeConstructor):
+    """Represents `Set[_]` type constructor"""
+
+    def __init__(self, star_to_star: StarToStar):
+        super(SetTypeConstructor, self).__init__(
+            star_to_star=star_to_star, name="Set[...]"
+        )
+
+    def create_type(self, type_of_elems: T) -> SetType[T]:
+        type_name = f"Set[{type_of_elems.name}]"
+        return SetType(self.star, type_name, type_of_elems)
+
+
 class SetType(Generic[T], Type):
+    """Represents `Set[T]` type with specific type of elements `T` e.g. Set[IntType]"""
+
     def __init__(self, star: Star, name: str, type_: Type):
         super(SetType, self).__init__(star=star, name=name)
         self.element_type = type_
@@ -25,6 +44,9 @@ class SetType(Generic[T], Type):
 
 
 class SetInstance(Generic[T], Instance[SetType[T]]):
+    """Represents instances of `Set[T]` type
+    e.g. instance of Set[IntType] = {1,22,-45}"""
+
     def __init__(self, cell: Cell):
         super(SetInstance, self).__init__(cell=cell)
 
@@ -41,14 +63,3 @@ class SetInstance(Generic[T], Instance[SetType[T]]):
 
     def __len__(self) -> int:
         return len(self.cell.the_only_atom_of.boundary)
-
-
-class SetTypeConstructor(TypeConstructor):
-    def __init__(self, star_to_star: StarToStar):
-        super(SetTypeConstructor, self).__init__(
-            star_to_star=star_to_star, name="Set[...]"
-        )
-
-    def create_type(self, type_of_elems: T) -> SetType[T]:
-        type_name = f"Set[{type_of_elems.name}]"
-        return SetType(self.star, type_name, type_of_elems)

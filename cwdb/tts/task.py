@@ -1,3 +1,7 @@
+"""
+Visualizing of this module:
+https://miro.com/app/board/uXjVPes5Bj4=/?moveToWidget=3458764531336857191&cot=14
+"""
 from __future__ import annotations
 
 from typing import Any, Callable, Dict
@@ -8,6 +12,8 @@ from .core import Instance, Star, Type
 
 
 class SignatureType:
+    """Represents Signature cell"""
+
     def __init__(self, task_type: TaskType):
         self.cw = task_type.cw
         self.cell = self.cw.create_cell("Signature")
@@ -18,6 +24,8 @@ class SignatureType:
 
 
 class ArgumentType:
+    """Represents Argument cell"""
+
     def __init__(self, signature_type: SignatureType):
         self.cw = signature_type.cw
         self.cell = self.cw.create_cell("Argument")
@@ -40,6 +48,8 @@ class ArgumentType:
 
 
 class ReturnType:
+    """Represents Return cell"""
+
     def __init__(self, signature_type: SignatureType):
         self.cw = signature_type.cw
         self.cell = self.cw.create_cell("Return")
@@ -57,6 +67,8 @@ class ReturnType:
 
 
 class TaskType(Type):
+    """Represents Task type"""
+
     def __init__(self, star: Star):
         super().__init__(star, "Task")
         self.SignatureType = SignatureType(self)
@@ -93,6 +105,9 @@ class TaskType(Type):
 
 
 class BindedArgs:
+    """Represents set of arguments after binding them to specific Task
+    for running after all"""
+
     def __init__(self, cell: Cell, task: TaskInstance):
         self.cell = cell
         self.task = task
@@ -109,6 +124,8 @@ class BindedArgs:
 
 
 class TaskInstance(Instance[TaskType]):
+    """Represents instance of Task type"""
+
     def __init__(self, cell: Cell, task_type: TaskType):
         super().__init__(cell)
         self.TaskType = task_type
