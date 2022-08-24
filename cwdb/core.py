@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import numpy as np
+
+from .interfaces import CellId, ICell, ICWComplex
 
 
 @dataclass
@@ -20,50 +23,21 @@ class Data:
 
     label: str
     dsu: Optional[DSUData] = field(default=None, repr=False)
-    zero_cells: Set[Cell] = field(default_factory=set, repr=False)
-    coboundary: Optional[List[Cell]] = field(default=None, repr=False)
+    zero_cells: Set[ICell] = field(default_factory=set, repr=False)
     deleted: bool = False
     embedding: np.ndarray = field(default_factory=lambda: np.empty(shape=(0,)))
     task_implementation: Optional[Callable] = None
-    atom_of: Set[Cell] = field(default_factory=set, repr=False)
-    atoms: Set[Cell] = field(default_factory=set, repr=False)
 
 
-@dataclass
-class Cell:
-    data: Data = field(compare=False)
-    dimension: int = field(default=-1)
-    boundary: Tuple[Cell, ...] = field(default_factory=tuple)
+class Cell(ICell):
+    def __init__(self, *, dimension: int, data: Data, boundary: Tuple[ICell, ...] = ()):
+        self.boundary = tuple(boundary)
+        self.dimension = dimension
+        self._data = data
 
     @property
-    def atoms(self) -> Set[Cell]:
-        assert self.dimension >= 1
-        return self.data.atoms
-
-    @property
-    def atom_of(self) -> Set[Cell]:
-        assert self.dimension == 0
-        return self.data.atom_of
-
-    @property
-    def atom(self) -> Cell:
-        assert self.dimension >= 1
-        n = len(self.data.atoms)
-        if n > 1:
-            raise RuntimeError(f"Cell {self} has {n} atoms")
-        for atom in self.data.atoms:
-            return atom
-        raise RuntimeError(f"Cell {self} has no atoms")
-
-    @property
-    def the_only_atom_of(self) -> Cell:
-        assert self.dimension == 0
-        n = len(self.data.atom_of)
-        if n > 1:
-            raise RuntimeError(f"Cell {self} has {n} atomisations")
-        for atomisation in self.data.atom_of:
-            return atomisation
-        raise RuntimeError(f"Cell {self} has no atomisations")
+    def data(self) -> Data:
+        return self._data
 
     @property
     def embedding(self) -> np.ndarray:
@@ -85,13 +59,7 @@ class Cell:
         self.data.label = value
 
     @property
-    def coboundary(self) -> List[Cell]:
-        if self.data.coboundary is None:
-            raise RuntimeError("Co-boundary is not built")
-        return self.data.coboundary
-
-    @property
-    def zero_cells(self) -> Set[Cell]:
+    def zero_cells(self) -> Set[ICell]:
         return self.data.zero_cells
 
     @classmethod
@@ -115,39 +83,36 @@ class Cell:
                 raise RuntimeError("1-cell cannot be connected with 3 or more 0-cells")
             return cell
 
+        cls.check_boundary_connectedness(cell, boundary)
+
+        return cell
+
+    @classmethod
+    def check_boundary_connectedness(cls, cell, boundary):
         # check that closure is connected
         for b in cell.zero_cells:
             b.data.dsu = DSUData(parent=b, size=0)
             assert b.data.dsu is not None
-
         for b in boundary:
             b.data.dsu = DSUData(parent=b, size=0)
             for z in b.zero_cells:
                 assert z in cell.zero_cells
                 assert z.data.dsu is not None
                 merge(b, z)
-
         p1 = find(boundary[0])
-
         for b in boundary[1:]:
             p = find(b)
             if p1 is not p:
                 raise RuntimeError(f"Closure is not connected '{b.label}'")
             p1 = p
-
         for b in boundary:
             b.data.dsu = None
-
         for b in cell.data.zero_cells:
             b.data.dsu = None
 
-        return cell
-
-    def __eq__(self, other):
-        return self is other
-
-    def __hash__(self):
-        return hash(id(self))
+    @property
+    def id(self) -> CellId:
+        return id(self)
 
     def __repr__(self):
         if self.dimension == 0:
@@ -210,34 +175,54 @@ def merge(a: Cell, b: Cell) -> None:
     parent_b.data.dsu.size += parent_a.data.dsu.size
 
 
-class Atomisation:
-    closure_of: Cell
-    atom: Cell
+class CWComplex(ICWComplex):
+    _layers: List[Set[ICell]]
+    _atoms_of: Dict[CellId, Set[ICell]]
+    _extensions_of: Dict[CellId, Set[ICell]]
+    _coboundary_of: Dict[CellId, Set[ICell]]
 
-    def __init__(self, atom: Cell, closure_of: Cell):
-        self.atom = atom
-        self.closure_of = closure_of
-        atom.data.atom_of.add(closure_of)
-        closure_of.data.atoms.add(atom)
+    def __init__(self):
+        self._layers = []
+        self._atoms_of = defaultdict(set)
+        self._extensions_of = defaultdict(set)
+        self._coboundary_of = defaultdict(set)
 
-    def destroy(self):
-        self.atom.data.atom_of.remove(self.closure_of)
-        self.closure_of.data.atoms.remove(self.atom)
+    def get_layer_cells(self, layer: int) -> Set[ICell]:
+        if len(self._layers) > layer:
+            return self._layers[layer]
+        return set()
 
+    def get_atoms_of(self, expansion: ICell) -> Set[ICell]:
+        return self._atoms_of[expansion.id]
 
-@dataclass
-class CWComplex:
-    layers: List[List[Cell]] = field(default_factory=list)
-    atomisations: List[Atomisation] = field(default_factory=list)
+    def get_expansions_of(self, atom: ICell) -> Set[ICell]:
+        return self._extensions_of[atom.id]
 
-    def link(self, a: Cell, b: Cell, label="", oriented=False) -> Optional[Cell]:
+    def delete_cell(self, cell: ICell):
+        raise NotImplementedError()
+
+    def delete_atom_link(self, expansion: ICell, atom: ICell):
+        raise NotImplementedError()
+
+    def get_cell_by_label(self, label: str) -> ICell:
+        for layer in self._layers:
+            for cell in layer:
+                if cell.label == label:
+                    return cell
+        raise KeyError(f"label={label}")
+
+    def get_coboundary_of(self, cell: ICell) -> Set[ICell]:
+        # FIXME: avoid recalc
+        self._build_coboundary()
+        return self._coboundary_of[cell.id]
+
+    def link(self, a: ICell, b: ICell, label="", oriented=False) -> ICell:
         assert a.dimension == 0
         assert b.dimension == 0
 
-        if len(self.layers) < 2:
-            self.layers.append([])
+        self._ensure_level_exists(1)
 
-        for c in self.layers[1]:
+        for c in self._layers[1]:
             if c.label == label and (
                 a == c.boundary[0]
                 and b == c.boundary[1]
@@ -246,50 +231,45 @@ class CWComplex:
                 return c
         return self.create_cell(label, [a, b])
 
-    def atomize(self, what: Cell, to: Cell) -> Atomisation:
-        assert what.dimension >= 1
-        assert to.dimension == 0
-        assert to not in what.atoms
-        result = Atomisation(closure_of=what, atom=to)
-        self.atomisations.append(result)
-        return result
+    def create_atom_link(self, expansion: ICell, atom: ICell):
+        assert expansion.dimension >= 1
+        assert atom.dimension == 0
+        assert atom not in self._atoms_of[expansion.id]
+        self._atoms_of[expansion.id].add(atom)
+        self._extensions_of[atom.id].add(expansion)
 
-    def create_cell(self, label: str, boundary=None) -> Cell:
+    def create_cell(self, label: str, boundary=None) -> ICell:
         if boundary:
             cell = Cell.from_boundary(label, boundary=boundary)
         else:
             cell = Cell.from_label(label)
 
-        while cell.dimension >= len(self.layers):
-            self.layers.append([])
-
-        self.layers[cell.dimension].append(cell)
+        self._ensure_level_exists(cell.dimension)
+        self._layers[cell.dimension].add(cell)
 
         return cell
 
-    def __getitem__(self, key: str) -> Optional[Cell]:
-        for layer in self.layers:
-            for cell in layer:
-                if cell.label == key:
-                    return cell
-        return None
+    def _ensure_level_exists(self, dimension):
+        while dimension >= len(self._layers):
+            self._layers.append(set())
 
-    def build_coboundary(self):
-        self.clear_coboundary()
-        for cell in self.layers[0]:
-            cell.data.coboundary = []
-        for layer in self.layers[1:]:
+    def _build_coboundary(self):
+        self._clear_coboundary()
+        for cell in self._layers[0]:
+            self._coboundary_of[cell.id] = set()
+        for layer in self._layers[1:]:
             for cell in layer:
                 if cell.data.deleted:  # skip deleted
                     continue
                 for b in cell.boundary:
                     if b.data.deleted:  # skip deleted
                         continue
-                    if b.data.coboundary is None:
-                        b.data.coboundary = []
-                    b.coboundary.append(cell)
+                    self._coboundary_of[b.id].add(cell)
 
-    def clear_coboundary(self):
-        for layer in self.layers[:-1]:
-            for cell in layer:
-                cell.data.coboundary = None
+    def _clear_coboundary(self):
+        self._coboundary_of = defaultdict(set)
+
+    def __contains__(self, item: ICell) -> bool:
+        if len(self._layers) > item.dimension:
+            return item in self._layers[item.dimension]
+        return False

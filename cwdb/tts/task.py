@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict
 
-from cwdb import Cell
+from cwdb.interfaces import ICell as Cell
 
 from .core import Instance, Star, Type
 
@@ -77,7 +77,7 @@ class TaskType(Type):
         self, name: str, args: Dict[str, Type], code: Callable, return_type: Type = None
     ) -> TaskInstance:
         task = self.cw.create_cell(name + "_task")
-        self.cw.link(task, self.cell, "io")
+        self.cw.link(task, self.cell, "io", oriented=True)
 
         arguments_cell = self.SignatureType.ArgumentType.typing_task_arguments(
             name, **args
@@ -100,7 +100,7 @@ class TaskType(Type):
 
         task.data.task_implementation = code
 
-        self.cw.atomize(task_three_cell, task)
+        self.cw.create_atom_link(task_three_cell, task)
         return TaskInstance(task, self)
 
 
@@ -115,10 +115,7 @@ class BindedArgs:
     def to_args_dict(self) -> Dict[str, Cell]:
         result = {}
         for link in self.cell.boundary:
-            if (
-                link.boundary[1]
-                is not self.task.TaskType.SignatureType.ArgumentType.cell
-            ):
+            if link.boundary[1] != self.task.TaskType.SignatureType.ArgumentType.cell:
                 result[link.boundary[1].label] = link.boundary[0]
         return result
 
@@ -133,13 +130,15 @@ class TaskInstance(Instance[TaskType]):
     def _bind(self, **kwargs: Instance[Type]) -> BindedArgs:
         """Return 2-cell with specific arguments values"""
         return_cell_boundary = []
-        for atomization in self.cell.atom_of:
+        # FIXME: context of an instance might be different from context of its type
+        context = self.TaskType.cw
+        for atomization in self.cell.expansions(context=context):
             for cell in atomization.boundary:
                 if cell.dimension == 2:
                     for link in cell.boundary:
                         if (
                             link.boundary[1]
-                            is self.TaskType.SignatureType.ArgumentType.cell
+                            == self.TaskType.SignatureType.ArgumentType.cell
                         ):
                             arg = link.boundary[0]
                             assert arg.data.label in kwargs

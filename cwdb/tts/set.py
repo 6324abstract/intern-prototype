@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterator
 
-from cwdb import Cell
+from cwdb.interfaces import ICell
 
 from .core import Instance, Star, StarToStar, T, Type, TypeConstructor
 
@@ -39,27 +39,26 @@ class SetType(Generic[T], Type):
             label=f"Set[{self.element_type.name}]#{id(result_atom):0x}",
             boundary=boundary,
         )
-        self.cw.atomize(what=result_cell, to=result_atom)
-        return SetInstance(result_atom)
+        self.cw.create_atom_link(expansion=result_cell, atom=result_atom)
+        self.cw.link(result_atom, self.cell, "io", oriented=True)
+        return SetInstance(result_cell)
 
 
 class SetInstance(Generic[T], Instance[SetType[T]]):
     """Represents instances of `Set[T]` type
     e.g. instance of Set[IntType] = {1,22,-45}"""
 
-    def __init__(self, cell: Cell):
+    def __init__(self, cell: ICell):
         super(SetInstance, self).__init__(cell=cell)
 
     def __contains__(self, item: Instance[T]) -> bool:
-        for link in self.cell.the_only_atom_of.boundary:
-            if link.boundary[0] is item.cell:
+        for link in self.cell.boundary:
+            if link.boundary[0] == item.cell:
                 return True
         return False
 
-    def __iter__(self) -> Iterator[Cell]:
-        return [
-            link.boundary[0] for link in self.cell.the_only_atom_of.boundary
-        ].__iter__()
+    def __iter__(self) -> Iterator[ICell]:
+        return [link.boundary[0] for link in self.cell.boundary].__iter__()
 
     def __len__(self) -> int:
-        return len(self.cell.the_only_atom_of.boundary)
+        return len(self.cell.boundary)

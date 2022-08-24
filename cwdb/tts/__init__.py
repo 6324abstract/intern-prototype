@@ -27,14 +27,13 @@ class TaskTypeSystem:
         )
 
     def is_instance_of(self, instance: Cell, asserted_type: Type) -> bool:
-        if instance.data.coboundary is None:
-            self.cw.build_coboundary()
-
-        for link in instance.coboundary:
+        # FIXME: context might be different from tts
+        context = self.cw
+        for link in instance.coboundary(context):
             if (
                 link.dimension == 1
                 and link.label == "io"
-                and link.boundary[1] is asserted_type.cell
+                and link.boundary[1] == asserted_type.cell
             ):
                 return True
         return False

@@ -27,7 +27,7 @@ class FloatType(Type):
         self: FloatType, value: float
     ) -> Instance[FloatType]:
         res = self.cw.create_cell(f"{value}")
-        self.cw.link(res, self.cell)
+        self.cw.link(res, self.cell, "io", oriented=True)
         return Instance[FloatType](res)
 
 
@@ -39,5 +39,5 @@ class StringType(Type):
         self: StringType, value: str
     ) -> Instance[StringType]:
         res = self.cw.create_cell(value)
-        self.cw.link(res, self.cell)
+        self.cw.link(res, self.cell, "io", oriented=True)
         return Instance[StringType](res)

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterator, List
 
-from cwdb import Cell
+from cwdb.interfaces import ICell
 
 from .core import Instance, Star, StarToStar, T, Type, TypeConstructor
 
@@ -44,29 +44,29 @@ class ListType(Generic[T], Type):
             label=f"List[{self.element_type.name}]#{id(result_atom):0x}",
             boundary=boundary,
         )
-        self.cw.atomize(what=result_cell, to=result_atom)
-        return ListInstance(result_atom)
+        self.cw.create_atom_link(expansion=result_cell, atom=result_atom)
+        self.cw.link(result_atom, self.cell, "io", oriented=True)
+        return ListInstance(result_cell)
 
 
 class ListInstance(Generic[T], Instance[ListType[T]]):
     """Represents instances of `List[T]` type
     e.g. instance of List[IntType] = [1,22,-45]"""
 
-    def __init__(self, cell: Cell):
+    def __init__(self, cell: ICell):
         super(ListInstance, self).__init__(cell=cell)
 
-    # Border of atomed cell must be in order
     @property
-    def list_representation(self) -> List[Cell]:
-        return [link.boundary[0] for link in self.cell.the_only_atom_of.boundary]
+    def list_representation(self) -> List[ICell]:
+        return [link.boundary[0] for link in self.cell.boundary]
 
     def __contains__(self, item: Instance[T]) -> bool:
         return item.cell in self.list_representation
 
-    def __iter__(self) -> Iterator[Cell]:
+    def __iter__(self) -> Iterator[ICell]:
         return self.list_representation.__iter__()
 
-    def __getitem__(self, idx: int) -> Cell:
+    def __getitem__(self, idx: int) -> ICell:
         return self.list_representation[idx]
 
     def __len__(self) -> int:

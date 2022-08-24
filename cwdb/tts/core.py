@@ -5,7 +5,7 @@ from typing import Generic
 from typing import Type as Type_
 from typing import TypeVar
 
-from cwdb import Cell, CWComplex
+from cwdb.interfaces import ICell, ICWComplex
 
 T = TypeVar("T", bound="Type")
 HT = TypeVar("HT", bound="TypeConstructor")
@@ -14,9 +14,9 @@ HT = TypeVar("HT", bound="TypeConstructor")
 class Star:
     """Creates types"""
 
-    def __init__(self, cw: CWComplex, name: str = "*"):
-        self.cw: CWComplex = cw
-        self.cell: Cell = self.cw.create_cell(name)
+    def __init__(self, cw: ICWComplex, name: str = "*"):
+        self.cw: ICWComplex = cw
+        self.cell: ICell = self.cw.create_cell(name)
 
     def create(self, cls: Type_[T]) -> T:
         return cls(self)  # type: ignore[call-arg]
@@ -28,8 +28,8 @@ class StarToStar:
     def __init__(self, star: Star, name: str = "* -> *"):
         self.name = name
         self.star: Star = star
-        self.cw: CWComplex = star.cw
-        self.cell: Cell = self.cw.create_cell(name)
+        self.cw: ICWComplex = star.cw
+        self.cell: ICell = self.cw.create_cell(name)
 
     def create_type_constructor(self, cls: Type_[HT]) -> HT:
         return cls(self)  # type: ignore[call-arg]
@@ -38,8 +38,8 @@ class StarToStar:
 class Instance(Generic[T]):
     """Represents Instance of specific type"""
 
-    def __init__(self, cell: Cell):
-        self.cell: Cell = cell
+    def __init__(self, cell: ICell):
+        self.cell: ICell = cell
 
 
 class Type:
@@ -47,7 +47,7 @@ class Type:
 
     def __init__(self, star: Star, name: str):
         self.star = star
-        self.cw: CWComplex = self.star.cw
+        self.cw: ICWComplex = self.star.cw
         self.cell = self.cw.create_cell(name)
         self.cw.link(self.cell, self.star.cell, "io", oriented=True)
 

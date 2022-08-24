@@ -1,23 +1,23 @@
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 
-from .core import Cell, CWComplex
+from .interfaces import CellId, ICell, ICWComplex
 
 
-def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
+def apply_rule(c: ICWComplex, rule: ICell, subcomplex: List[ICell]):
     # pattern matching
 
-    cb = rule.coboundary
+    cb = rule.coboundary(c)
     pattern_links = [x for x in cb if x.label == "pattern_scaffold"]
     # sanity check
 
     assert len(pattern_links) > 0
     assert len(pattern_links) == len([x for x in subcomplex if x.dimension == 0])
 
-    assert len(pattern_links[0].coboundary) == 1
+    assert len(pattern_links[0].coboundary(c)) == 1
 
-    pattern = pattern_links[0].coboundary[0]
+    pattern = list(pattern_links[0].coboundary(c))[0]
     assert pattern.label == "pattern"
     assert len(pattern.boundary) > len(pattern_links)
     pattern_list = pattern.boundary[len(pattern_links) :]
@@ -41,9 +41,9 @@ def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
     # pattern matched
 
     deletion_list = []
-    target_to_destination = {}
+    target_to_destination: Dict[CellId, ICell] = {}
     for destination_cell, p in zip(subcomplex, pattern_list):
-        bindings = [b for b in p.coboundary if b.label == "bind"]
+        bindings = [b for b in p.coboundary(c) if b.label == "bind"]
         assert len(bindings) <= 1
         if len(bindings) == 1:
             bind = bindings[0]
@@ -55,29 +55,29 @@ def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
                 if b.label not in ["bind", "nobind"] and b is not p
             ]
             assert len(target) == 1
-            target_to_destination[id(target[0])] = destination_cell
+            target_to_destination[target[0].id] = destination_cell
         else:
             deletion_list.append(destination_cell)
 
     product_links = [x for x in cb if x.label == "product_scaffold"]
 
     if product_links:
-        assert len(product_links[0].coboundary) == 1
-        product = product_links[0].coboundary[0]
+        assert len(product_links[0].coboundary(c)) == 1
+        product = list(product_links[0].coboundary(c))[0]
         assert product.label == "product"
         for pl in product_links[1:]:
             assert pl.coboundary == [product]
         product_list = product.boundary[len(product_links) :]
-        create_list = [x for x in product_list if id(x) not in target_to_destination]
+        create_list = [x for x in product_list if x.id not in target_to_destination]
 
         for x in sorted(
             create_list, key=lambda x: x.dimension
         ):  # sort is redundant if rules are well-written
             if x.dimension == 0:
-                target_to_destination[id(x)] = c.create_cell(x.label)
+                target_to_destination[x.id] = c.create_cell(x.label)
             else:
-                target_to_destination[id(x)] = c.create_cell(
-                    x.label, [target_to_destination[id(b)] for b in x.boundary]
+                target_to_destination[x.id] = c.create_cell(
+                    x.label, [target_to_destination[b.id] for b in x.boundary]
                 )
 
     # deletion
@@ -85,7 +85,7 @@ def apply_rule(c: CWComplex, rule: Cell, subcomplex: List[Cell]):
         x.data.deleted = True
 
 
-def revision_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
+def revision_rule(c: ICWComplex, e1: ICell, e2: ICell) -> ICell:
     assert e1.label == e2.label
     assert e1.boundary == e2.boundary
     f1, c1 = e1.embedding
@@ -102,7 +102,7 @@ def revision_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
     return result
 
 
-def choice_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
+def choice_rule(c: ICWComplex, e1: ICell, e2: ICell) -> ICell:
     assert e1.label == e2.label
     assert e1.boundary == e2.boundary
     f1, c1 = e1.embedding
@@ -113,7 +113,7 @@ def choice_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
     return e2
 
 
-def random_rule(c: CWComplex, e1: Cell, e2: Cell) -> Cell:
+def random_rule(c: ICWComplex, e1: ICell, e2: ICell) -> ICell:
     assert e1.label == e2.label
     assert e1.boundary == e2.boundary
     if np.random.random() > 0.5:
