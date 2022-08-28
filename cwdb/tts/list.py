@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterator, List
 
-from cwdb.interfaces import ICell
+from cwdb.interfaces import ICell, ICWComplex
 
 from .core import Instance, Star, StarToStar, T, Type, TypeConstructor
 
@@ -19,18 +19,26 @@ class ListTypeConstructor(TypeConstructor):
             star_to_star=star_to_star, name="List[...]"
         )
 
-    def create_type(self, type_of_elems: T) -> ListType[T]:
-        type_name = f"List[{type_of_elems.name}]"
-        return ListType(self.star, type_name, type_of_elems)
+    def create_type(self, param: T, *, context: ICWComplex) -> ListType[T]:
+        type_name = f"List[{param.name}]"
+        return ListType._from_element_type(
+            type_=param, name=type_name, star=self.star, context=context
+        )
 
 
 class ListType(Generic[T], Type):
     """Represents `List[T]` type with specific type of elements `T`
     e.g. List[IntType]"""
 
-    def __init__(self, star: Star, name: str, type_: Type):
-        super(ListType, self).__init__(star=star, name=name)
-        self.element_type = type_
+    def __init__(self, star: Star, cell: ICell, element_t: T, *, context: ICWComplex):
+        super().__init__(star=star, cell=cell, context=context)
+        self.element_type = element_t
+
+    @classmethod
+    def _from_element_type(
+        cls, type_: T, name: str, star: Star, *, context: ICWComplex
+    ):
+        return cls._from_name(name=name, star=star, context=context, element_t=type_)
 
     def create(self, *args: Instance[T]) -> ListInstance[T]:
         boundary = []

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Generic, Iterator
 
-from cwdb.interfaces import ICell
+from cwdb.interfaces import ICell, ICWComplex
 
 from .core import Instance, Star, StarToStar, T, Type, TypeConstructor
 
@@ -19,17 +19,25 @@ class SetTypeConstructor(TypeConstructor):
             star_to_star=star_to_star, name="Set[...]"
         )
 
-    def create_type(self, type_of_elems: T) -> SetType[T]:
-        type_name = f"Set[{type_of_elems.name}]"
-        return SetType(self.star, type_name, type_of_elems)
+    def create_type(self, param: T, *, context: ICWComplex) -> SetType[T]:
+        type_name = f"Set[{param.name}]"
+        return SetType._from_element_type(
+            type_=param, name=type_name, star=self.star, context=context
+        )
 
 
 class SetType(Generic[T], Type):
     """Represents `Set[T]` type with specific type of elements `T` e.g. Set[IntType]"""
 
-    def __init__(self, star: Star, name: str, type_: Type):
-        super(SetType, self).__init__(star=star, name=name)
-        self.element_type = type_
+    def __init__(self, star: Star, cell: ICell, element_t: T, *, context: ICWComplex):
+        super(SetType, self).__init__(star=star, cell=cell, context=context)
+        self.element_type = element_t
+
+    @classmethod
+    def _from_element_type(
+        cls, type_: T, name: str, star: Star, *, context: ICWComplex
+    ):
+        return cls._from_name(name=name, star=star, context=context, element_t=type_)
 
     # TODO elems should be unique
     def create(self, *args: Instance[T]) -> SetInstance[T]:

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict
 
-from cwdb.interfaces import ICell as Cell
+from cwdb.interfaces import ICell, ICWComplex
 
 from .core import Instance, Star, Type
 
@@ -31,7 +31,7 @@ class ArgumentType:
         self.cell = self.cw.create_cell("Argument")
         self.Argument_Signature_link = self.cw.link(self.cell, signature_type.cell)
 
-    def typing_task_arguments(self, task_name: str, **args_types: Type) -> Cell:
+    def typing_task_arguments(self, task_name: str, **args_types: Type) -> ICell:
         # Create argument 2-cell
         arg_cell_boundary = []
 
@@ -55,7 +55,7 @@ class ReturnType:
         self.cell = self.cw.create_cell("Return")
         self.Return_Signature_link = self.cw.link(self.cell, signature_type.cell)
 
-    def typing_task_return(self, task_name: str, return_type: Type) -> Cell:
+    def typing_task_return(self, task_name: str, return_type: Type) -> ICell:
         # Create "return" 2-cell
         return self.cw.create_cell(
             f"Return for {task_name} task",
@@ -69,11 +69,11 @@ class ReturnType:
 class TaskType(Type):
     """Represents Task type"""
 
-    def __init__(self, star: Star):
-        super().__init__(star, "Task")
+    def __init__(self, star: Star, cell: ICell, context: ICWComplex):
+        super().__init__(star=star, cell=cell, context=context)
         self.SignatureType = SignatureType(self)
 
-    def create(  # type: ignore[override]
+    def create(
         self, name: str, args: Dict[str, Type], code: Callable, return_type: Type = None
     ) -> TaskInstance:
         task = self.cw.create_cell(name + "_task")
@@ -104,15 +104,14 @@ class TaskType(Type):
         return TaskInstance(task, self)
 
 
-class BindedArgs:
-    """Represents set of arguments after binding them to specific Task
-    for running after all"""
+class BoundArgs:
+    """Represents bound arguments to a specific Task"""
 
-    def __init__(self, cell: Cell, task: TaskInstance):
+    def __init__(self, cell: ICell, task: TaskInstance):
         self.cell = cell
         self.task = task
 
-    def to_args_dict(self) -> Dict[str, Cell]:
+    def to_args_dict(self) -> Dict[str, ICell]:
         result = {}
         for link in self.cell.boundary:
             if link.boundary[1] != self.task.TaskType.SignatureType.ArgumentType.cell:
@@ -123,11 +122,11 @@ class BindedArgs:
 class TaskInstance(Instance[TaskType]):
     """Represents instance of Task type"""
 
-    def __init__(self, cell: Cell, task_type: TaskType):
+    def __init__(self, cell: ICell, task_type: TaskType):
         super().__init__(cell)
         self.TaskType = task_type
 
-    def _bind(self, **kwargs: Instance[Type]) -> BindedArgs:
+    def _bind(self, **kwargs: Instance[Type]) -> BoundArgs:
         """Return 2-cell with specific arguments values"""
         return_cell_boundary = []
         # FIXME: context of an instance might be different from context of its type
@@ -152,7 +151,7 @@ class TaskInstance(Instance[TaskType]):
         bind_args_cell = self.TaskType.cw.create_cell(
             f"Input for {self.cell.data.label}", return_cell_boundary
         )
-        return BindedArgs(bind_args_cell, self)
+        return BoundArgs(bind_args_cell, self)
 
     def eval(self, **kwargs: Instance[Type]) -> Any:
         if self.cell.data.task_implementation is None:
@@ -161,5 +160,5 @@ class TaskInstance(Instance[TaskType]):
         if kwargs is None:
             return self.cell.data.task_implementation(**{})
         else:
-            args_dict: Dict[str, Cell] = self._bind(**kwargs).to_args_dict()
+            args_dict: Dict[str, ICell] = self._bind(**kwargs).to_args_dict()
             return self.cell.data.task_implementation(**args_dict)

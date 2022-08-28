@@ -19,7 +19,7 @@ class PyImplementation:
 
 def test_hello_world():
     cw = CWComplex()
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
     hw = tts.Task.create(name="hello_world_n_times", args={}, code=printer)
@@ -30,7 +30,7 @@ def test_hello_world():
 @pytest.mark.skip(reason="Task args check is not implemented yet")
 def test_hello_world_wrong_number_of_arguments():
     cw = CWComplex()
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
     hw = tts.Task.create(name="hello_world_n_times", args={}, code=printer)
@@ -42,7 +42,7 @@ def test_hello_world_wrong_number_of_arguments():
 
 def test_hello_world_n_times():
     cw = CWComplex()
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
     hw = tts.Task.create(name="hello_world_n_times", args={"n": tts.Int}, code=printer)
@@ -54,7 +54,7 @@ def test_hello_world_n_times():
 @pytest.mark.skip(reason="Task arg type check is not implemented yet")
 def test_hello_world_n_times_wrong_arg_type():
     cw = CWComplex()
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
     hw = tts.Task.create(
@@ -82,7 +82,7 @@ def test_task_return_type():
     Human = cw.create_cell("Human")
     alice = cw.create_cell("Alice")
     cw.link(alice, Human, "io")
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
     func = PyTaskImplementationWithReturnValue(alice)
     hw = tts.Task.create(name="Get the Human", args={}, code=func)
@@ -93,9 +93,9 @@ def test_task_return_type():
 
 def test_create_int_set():
     cw = CWComplex()
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
-    IntSet: t.SetType[t.IntType] = tts.Set.create_type(tts.Int)
+    IntSet: t.SetType[t.IntType] = tts.Set.create_type(tts.Int, context=cw)
     ints: List[t.Instance[t.IntType]] = [tts.Int.create(i) for i in (1, 2, 3)]
     int_set_1: t.SetInstance[t.IntType] = IntSet.create(*ints)
     int_4 = tts.Int.create(4)
@@ -111,9 +111,9 @@ def test_create_int_set():
 
 def test_create_int_list():
     cw = CWComplex()
-    tts = TaskTypeSystem(cw)
+    tts = TaskTypeSystem.from_empty_context(cw)
 
-    IntList: t.ListType[t.IntType] = tts.List.create_type(tts.Int)
+    IntList: t.ListType[t.IntType] = tts.List.create_type(tts.Int, context=cw)
     ints: List[t.Instance[t.IntType]] = [tts.Int.create(i) for i in (1, 2, 3)]
     int_list_1: t.SetInstance[t.IntType] = IntList.create(*ints)
     int_4 = tts.Int.create(4)
