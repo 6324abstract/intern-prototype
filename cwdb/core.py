@@ -10,19 +10,10 @@ from .interfaces import CellId, ICell, ICWComplex
 
 
 @dataclass
-class DSUData:
-    """Disjoint set union"""
-
-    size: int
-    parent: Cell
-
-
-@dataclass
 class Data:
     """Flexible mutable smth"""
 
     label: str
-    dsu: Optional[DSUData] = field(default=None, repr=False)
     zero_cells: Set[ICell] = field(default_factory=set, repr=False)
     deleted: bool = False
     embedding: np.ndarray = field(default_factory=lambda: np.empty(shape=(0,)))
@@ -31,9 +22,23 @@ class Data:
 
 class Cell(ICell):
     def __init__(self, *, dimension: int, data: Data, boundary: Tuple[ICell, ...] = ()):
-        self.boundary = tuple(boundary)
-        self.dimension = dimension
+        self.__boundary = tuple(boundary)
+        self.__dimension = dimension
         self._data = data
+
+    @property
+    def dimension(self) -> int:
+        return self.__dimension
+
+    @property
+    def boundary(self) -> Tuple[ICell, ...]:
+        return self.__boundary
+
+    @boundary.setter
+    def boundary(self, value: List[ICell]):
+        self.check_boundary_connectedness(value)
+        self.check_boundary_is_minimal(value)
+        self.__boundary = tuple(value)
 
     @property
     def data(self) -> Data:
@@ -69,7 +74,7 @@ class Cell(ICell):
         return cell
 
     @classmethod
-    def from_boundary(cls, label: str, boundary: List[Cell]) -> Cell:
+    def from_boundary(cls, label: str, boundary: List[ICell]) -> ICell:
         assert len(boundary) != 0
         cell = cls(
             data=Data(label=label),
@@ -83,32 +88,50 @@ class Cell(ICell):
                 raise RuntimeError("1-cell cannot be connected with 3 or more 0-cells")
             return cell
 
-        cls.check_boundary_connectedness(cell, boundary)
+        cls.check_boundary_connectedness(boundary)
+        cls.check_boundary_is_minimal(boundary)
 
         return cell
 
     @classmethod
-    def check_boundary_connectedness(cls, cell, boundary):
+    def check_boundary_connectedness(cls, boundary):
         # check that closure is connected
-        for b in cell.zero_cells:
-            b.data.dsu = DSUData(parent=b, size=0)
-            assert b.data.dsu is not None
+        from itertools import chain
+
+        from .utils import DSU
+
+        dsu = DSU(chain(*(b.zero_cells for b in boundary), boundary))
         for b in boundary:
-            b.data.dsu = DSUData(parent=b, size=0)
             for z in b.zero_cells:
-                assert z in cell.zero_cells
-                assert z.data.dsu is not None
-                merge(b, z)
-        p1 = find(boundary[0])
+                dsu.merge(b, z)
+        p1 = dsu.find(boundary[0])
         for b in boundary[1:]:
-            p = find(b)
-            if p1 is not p:
+            if p1 != dsu.find(b):
                 raise RuntimeError(f"Closure is not connected '{b.label}'")
-            p1 = p
+
+    @classmethod
+    def check_boundary_is_minimal(cls, boundary: List[ICell]):
+        # colors of complex cells by boundary
+        cell_colours: Dict[ICell, ICell] = {}
+
+        def paint(el: ICell, color: ICell):
+            if el in boundary and el in cell_colours:
+                existing_color = cell_colours[el]
+                if existing_color != color:
+                    small = existing_color
+                    big = color
+                    if big.dimension < small.dimension:
+                        big, small = small, big
+                    raise RuntimeError(
+                        f"Boundary is not minimal: '{small.label}'"
+                        f" is contained in '{big.label}'"
+                    )
+            cell_colours[el] = color
+            for b in el.boundary:
+                paint(b, color)
+
         for b in boundary:
-            b.data.dsu = None
-        for b in cell.data.zero_cells:
-            b.data.dsu = None
+            paint(b, b)
 
     @property
     def id(self) -> CellId:
@@ -150,29 +173,6 @@ class Cell(ICell):
 
     def __str__(self):
         return self.to_tree()
-
-
-def find(cell: Cell) -> Cell:
-    assert cell.data.dsu is not None
-    while cell is not cell.data.dsu.parent:
-        assert cell.data.dsu.parent.data.dsu is not None
-        cell.data.dsu.parent = cell.data.dsu.parent.data.dsu.parent
-        cell = cell.data.dsu.parent
-    return cell
-
-
-def merge(a: Cell, b: Cell) -> None:
-    parent_a = find(a)
-    parent_b = find(b)
-    assert parent_a.data.dsu is not None
-    assert parent_b.data.dsu is not None
-    if parent_a.data.dsu.size > parent_b.data.dsu.size:
-        parent_a, parent_b = parent_b, parent_a
-
-    assert parent_a.data.dsu is not None
-    assert parent_b.data.dsu is not None
-    parent_a.data.dsu.parent = parent_b
-    parent_b.data.dsu.size += parent_a.data.dsu.size
 
 
 class CWComplex(ICWComplex):

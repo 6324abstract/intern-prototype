@@ -25,11 +25,13 @@ def test_disjount_boundary_raises():
         Cell.from_boundary("x", [ab, cd])
 
 
-@pytest.mark.skip("Check is not implemented")
 def test_redundant_boundary_raises():
     a = Cell.from_label("a")
     b = Cell.from_label("b")
     ab = Cell.from_boundary("ab", [a, b])
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="'a' is contained in 'ab'"):
         Cell.from_boundary("x", [ab, a])
+
+    with pytest.raises(RuntimeError, match="'a' is contained in 'ab'"):
+        Cell.from_boundary("x", [a, ab])

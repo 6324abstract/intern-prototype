@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Set, Tuple, TypeVar
+from typing import Iterable, Set, Tuple, TypeVar
 
 import numpy as np
 
@@ -10,8 +10,20 @@ CellId = int
 
 
 class ICell(abc.ABC):
-    dimension: int
-    boundary: Tuple[ICell, ...]
+    @property
+    @abc.abstractmethod
+    def dimension(self) -> int:
+        ...
+
+    @property  # type: ignore[misc]
+    @abc.abstractmethod
+    def boundary(self) -> Tuple[ICell, ...]:
+        ...
+
+    @boundary.setter  # type: ignore[misc]
+    @abc.abstractmethod
+    def boundary(self, value: Iterable[ICell]):
+        ...
 
     @property
     @abc.abstractmethod
