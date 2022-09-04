@@ -7,7 +7,7 @@ from typing import TypeVar
 
 from cwdb.interfaces import ICell, ICWComplex
 
-T = TypeVar("T", bound="Type")
+T = TypeVar("T", bound="Type", covariant=True)
 HT = TypeVar("HT", bound="TypeConstructor")
 
 
@@ -24,9 +24,9 @@ class Star:
         return cls(cell=cell, context=context)
 
     def create_new_type(
-        self, class_: Type_[T], /, name: str, *, context: ICWComplex
+        self, class_: Type_[T], /, name: str, *, context: ICWComplex, **kwargs
     ) -> T:
-        return class_._from_name(star=self, name=name, context=context)
+        return class_._from_name(star=self, name=name, context=context, **kwargs)
 
 
 class StarToStar:
@@ -66,13 +66,17 @@ class Instance(Generic[T]):
                 return True
         return False
 
+    def __eq__(self, other: object):
+        if not isinstance(other, Instance):
+            return NotImplemented
+        return self.cell == other.cell
+
 
 class Type:
     """Base class for all types"""
 
-    def __init__(self, star: Star, cell: ICell, *, context: ICWComplex, **kwargs):
+    def __init__(self, cell: ICell, *, context: ICWComplex, **kwargs):
         assert len(kwargs) == 0
-        self.star: Star = star
         self.cell: ICell = cell
         self.cw: ICWComplex = context
 
@@ -80,7 +84,7 @@ class Type:
     def _from_name(cls, name: str, star: Star, *, context: ICWComplex, **kwargs):
         cell = context.create_cell(name)
         context.link(cell, star.cell, "io", oriented=True)
-        return cls(cell=cell, star=star, context=context, **kwargs)
+        return cls(cell=cell, context=context, **kwargs)
 
     @property
     def name(self) -> str:
@@ -101,5 +105,5 @@ class TypeConstructor:
         self.cw.link(self.cell, star_to_star.cell, "io", oriented=True)
 
     @abstractmethod
-    def create_type(self, param: T, *, context: ICWComplex) -> Type:
+    def create_type(self, param: Type, *, context: ICWComplex) -> Type:
         pass

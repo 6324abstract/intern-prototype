@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict
 
 from cwdb.interfaces import ICell, ICWComplex
 
-from .core import Instance, Star, Type
+from .core import Instance, Type
 
 
 class SignatureType:
@@ -61,7 +61,7 @@ class ReturnType:
             f"Return for {task_name} task",
             [
                 self.Return_Signature_link,
-                self.cw.create_cell(return_type.cell.label, self.cell),
+                self.cw.link(return_type.cell, self.cell),
             ],
         )
 
@@ -69,12 +69,16 @@ class ReturnType:
 class TaskType(Type):
     """Represents Task type"""
 
-    def __init__(self, star: Star, cell: ICell, context: ICWComplex):
-        super().__init__(star=star, cell=cell, context=context)
+    def __init__(self, cell: ICell, context: ICWComplex):
+        super().__init__(cell=cell, context=context)
         self.SignatureType = SignatureType(self)
 
     def create(
-        self, name: str, args: Dict[str, Type], code: Callable, return_type: Type = None
+        self,
+        name: str,
+        args: Dict[str, Type],
+        impl: Callable = None,
+        return_type: Type = None,
     ) -> TaskInstance:
         task = self.cw.create_cell(name + "_task")
         self.cw.link(task, self.cell, "io", oriented=True)
@@ -98,7 +102,7 @@ class TaskType(Type):
                 f"{name} task 3-cell", [arguments_cell]
             )
 
-        task.data.task_implementation = code
+        task.data.task_implementation = impl
 
         self.cw.create_atom_link(task_three_cell, task)
         return TaskInstance(task, self)

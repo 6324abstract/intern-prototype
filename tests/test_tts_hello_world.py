@@ -2,8 +2,9 @@ from typing import List
 
 import pytest
 
-from cwdb import Cell, CWComplex
+from cwdb import CWComplex
 from cwdb import tts as t
+from cwdb.interfaces import ICell
 from cwdb.tts import TaskTypeSystem
 
 
@@ -22,7 +23,7 @@ def test_hello_world():
     tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
-    hw = tts.Task.create(name="hello_world_n_times", args={}, code=printer)
+    hw = tts.Task.create(name="hello_world_n_times", args={}, impl=printer)
     hw.eval()
     assert printer.called_with_kwargs == {}
 
@@ -33,7 +34,7 @@ def test_hello_world_wrong_number_of_arguments():
     tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
-    hw = tts.Task.create(name="hello_world_n_times", args={}, code=printer)
+    hw = tts.Task.create(name="hello_world_n_times", args={}, impl=printer)
     arg = tts.Int.create(7)
 
     with pytest.raises(RuntimeError) as _:
@@ -45,7 +46,7 @@ def test_hello_world_n_times():
     tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
-    hw = tts.Task.create(name="hello_world_n_times", args={"n": tts.Int}, code=printer)
+    hw = tts.Task.create(name="hello_world_n_times", args={"n": tts.Int}, impl=printer)
     arg = tts.Int.create(7)
     hw.eval(n=arg)
     assert printer.called_with_kwargs == {"n": arg.cell}
@@ -57,21 +58,19 @@ def test_hello_world_n_times_wrong_arg_type():
     tts = TaskTypeSystem.from_empty_context(cw)
 
     printer = PyImplementation()
-    hw = tts.Task.create(
-        name="hello_world_n_times", args={"n": tts.Int.cell}, code=printer
-    )
+    hw = tts.Task.create(name="hello_world_n_times", args={"n": tts.Int}, impl=printer)
     arg = tts.String.create("Alice")
     with pytest.raises(RuntimeError) as _:
         hw.eval(n=arg)
 
 
 class PyTaskImplementationWithReturnValue:
-    def __init__(self, return_value: Cell):
+    def __init__(self, return_value: ICell):
         self.called_with_args = None
         self.called_with_kwargs = None
         self.return_value = return_value
 
-    def __call__(self, *args, **kwargs) -> Cell:
+    def __call__(self, *args, **kwargs) -> ICell:
         self.called_with_args = args
         self.called_with_kwargs = kwargs
         return self.return_value
@@ -85,7 +84,7 @@ def test_task_return_type():
     tts = TaskTypeSystem.from_empty_context(cw)
 
     func = PyTaskImplementationWithReturnValue(alice)
-    hw = tts.Task.create(name="Get the Human", args={}, code=func)
+    hw = tts.Task.create(name="Get the Human", args={}, impl=func)
 
     a_human = hw.eval()
     assert a_human is alice

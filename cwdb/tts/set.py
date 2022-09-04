@@ -19,7 +19,7 @@ class SetTypeConstructor(TypeConstructor):
             star_to_star=star_to_star, name="Set[...]"
         )
 
-    def create_type(self, param: T, *, context: ICWComplex) -> SetType[T]:
+    def create_type(self, param: Type, *, context: ICWComplex) -> SetType[T]:
         type_name = f"Set[{param.name}]"
         return SetType._from_element_type(
             type_=param, name=type_name, star=self.star, context=context
@@ -29,13 +29,13 @@ class SetTypeConstructor(TypeConstructor):
 class SetType(Generic[T], Type):
     """Represents `Set[T]` type with specific type of elements `T` e.g. Set[IntType]"""
 
-    def __init__(self, star: Star, cell: ICell, element_t: T, *, context: ICWComplex):
-        super(SetType, self).__init__(star=star, cell=cell, context=context)
+    def __init__(self, cell: ICell, element_t: T, *, context: ICWComplex):
+        super(SetType, self).__init__(cell=cell, context=context)
         self.element_type = element_t
 
     @classmethod
     def _from_element_type(
-        cls, type_: T, name: str, star: Star, *, context: ICWComplex
+        cls, type_: Type, name: str, star: Star, *, context: ICWComplex
     ):
         return cls._from_name(name=name, star=star, context=context, element_t=type_)
 
