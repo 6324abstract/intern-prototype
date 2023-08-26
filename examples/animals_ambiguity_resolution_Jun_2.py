@@ -28,7 +28,6 @@ def main():
     c.create_cell("is", [water, liquid])
 
     c.build_coboundary()
-
     for e in c.layers[1]:
         x, y = e.boundary[:2]
         e.data.embedding = np.array(get_truth_value(x, y))
